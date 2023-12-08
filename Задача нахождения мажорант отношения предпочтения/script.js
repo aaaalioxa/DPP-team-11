@@ -10,7 +10,6 @@ function nedom() {
   let dd='';
   d.forEach((value, valueAgain, set) => {
     dd+=value+','; });
-    
   s.getRange(4,2).setValue('Расчет');
   s.getRange(5,2).setValue('D={'+dd.slice(0,-1)+'}');
   d.forEach(el=>{set.delete(el)});
