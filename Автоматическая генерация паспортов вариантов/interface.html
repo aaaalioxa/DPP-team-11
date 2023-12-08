@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <script>
+   let k=[];
+   var v=[];
+   let my={M:1,N:[],delta:[],v0:[]};
+   let ny={mult:1,nod:1,nok:1};
+   let iPovt=0;
+   let raz=0;
+   let pasport=[];
+   let stat=[];
+   pasport[0]=[];
+   let first=true;
+   let algoritm=1;
+
+function dejaE(k,p){ //есть k в p
+  let retu=p.some((arr)=>{return arr.every((el,i)=>{return (el==k[i]);});
+                         });
+ return retu;
+}
+
+function result(){
+  let rez=document.getElementById("rz");
+  rez.innerHTML='Готово!!!';
+  let raz=document.getElementById("raz");
+  raz.innerHTML='0';
+  setTimeout((rez)=>rez.innerHTML='',2000,rez);
+}   
+
+function refreshNastr(){
+  let N=document.getElementById("N").value.split(',');
+  N.forEach((el,i,arr)=>{arr[i]=Number(el)});
+  let delta=document.getElementById("delta").value.split(',');
+  delta.forEach((el,i,arr)=>{arr[i]=Number(el)});
+  let v0=document.getElementById("v0").value.split(',');
+  v0.forEach((el,i,arr)=>{arr[i]=Number(el)});
+  let M=Number(document.getElementById("M").value);
+  let rez=document.getElementById("rz");
+  rez.innerHTML='Обновляю...';
+  google.script.run.withSuccessHandler(result).newNastr(N,M,delta,v0);
+  let obj={M:M,N:N,delta:delta,v0:v0};
+  k=[];
+  raz=0;
+  pasport=[];
+  pasport[0]=[];
+  stat=[];
+  first=true;
+  iPovt=0;
+  if (algoritm==2){
+   let elem=document.getElementById('alg');
+    toggle(elem);
+   }
+  setNastr(obj);
+}   
+
+function setNastr(obj){
+    my.M=obj.M;
+    my.N=obj.N;
+    my.delta=obj.delta;
+    my.v0=obj.v0;
+    document.getElementById("N").value=my.N.join(',');
+    document.getElementById("delta").value=my.delta.join(',');
+    document.getElementById("v0").value=my.v0.join(',');
+    document.getElementById("M").value=my.M;
+    createKol();
+    ny=calcNOD();
+}
+
+   function nextPart(qq) {
+    if (first) {
+      qq=qq-raz-1;
+      first=false;
+      }
+    let n=Math.min(qq,ny.mult-raz-1);
+    for(var i=0; i<n; i++){ Next();}
+    google.script.run.saveP(pasport,stat,ny.nok);
+   }
+
+ function rndInt(min, max) {
+  // случайное число от min до max
+  let rand = min + Math.random() * (max + 1 - min);
+  return Math.floor(rand);
+ }
+
+ function Next() {
+   var spa=document.getElementById("raz");
+   var spa1=document.getElementById("out");
+   raz++;
+   if (raz>=ny.mult){
+     alert('C номера '+raz+' начинаются повторы'); // 'для алгоритма 1 это никогда не выполняется'
+     return;
+   }
+  if (algoritm==1){ 
+   k=takt2(k,my.delta,my.N,my.M);
+   if (raz%ny.nok==0){
+     f=true;
+     do {
+     k=takt(v,my.v0,my.N,my.M);
+     v = k.concat();
+     if (dejaE(k,pasport)){
+       iPovt++;
+     } else {
+       f=false;
+     }
+     } while (f) 
+   }
+  } else { //algoritm==2
+     k=takt(k,my.v0,my.N,my.M);   
+  }
+   spa.innerHTML= raz+1;
+   spa1.innerHTML= iPovt;
+   pasport[raz]=[]; 
+   for (var i=0; i<my.M; i++){
+    document.getElementById("k"+i).value=k[i];
+    pasport[raz][i]=k[i];
+    stat[k[i]][i]++;
+    }  
+   
+  }
+
+
+ function takt(k,delta,N,M) {
+    
+    function subTakt(k,i,di) {
+     k[i]=k[i]+di;
+     if (k[i]>N[i]-1) {
+        k[i]=k[i]%N[i];
+        if (i>0) {subTakt(k,i-1,1);}
+       }
+   }
+   var k2=[];for (var i=M-1; i>-1; i--){k2[i]=k[i];}
+   
+    for (var i=M-1; i>-1; i--)
+    { subTakt(k2,i,delta[i]);}
+   return k2;
+   }
+
+   function takt2(k,delta,N,M) {
+    function subTakt(k,i,di) {
+     k[i]=k[i]+di;
+     if (k[i]>N[i]-1) {
+        k[i]=k[i]%N[i];
+  //      if (i>0) {subTakt(k,i-1,1);}
+       }
+   }
+   var k2=[];for (var i=M-1; i>-1; i--){k2[i]=k[i];}
+   
+    for (var i=M-1; i>-1; i--)
+    { subTakt(k2,i,delta[i]);}
+   return k2;
+   }
+
+
+  function createKol() {
+    var NN=Math.max.apply(null, my.N);
+    var dv=document.getElementById("side");
+    raz=0;
+    for (var i=0; i<NN; i++){
+      stat[i]=[];
+      for (var j=0; j<my.M; j++){
+        stat[i][j]=0;
+      }
+    }
+    var s='';
+    for (var i=0; i<my.M; i++){ 
+      k[i]=0;
+      v[i]=0;
+      pasport[0][i]=0;
+      stat[0][i]=1;
+      s+='<input class="koleso" id="k' +(i)+ '" type="text" maxlength="1" size="1" value="'+0+'">'; 
+      }
+    dv.innerHTML=s;
+}
+      
+
+function calcNOD(){
+   
+   let multi= my.N.reduce((prevNum,curNum)=>{return mult=prevNum*curNum},1);
+   let mult0=1
+   let delti= my.delta.reduceRight((prevNum,curNum,i)=>{
+                                                        let ni;
+                                                        if (i<my.M-1) {ni=my.N[i+1]} else {ni=1};
+                                                        mult0=mult0*ni;
+                                                        return prevNum+curNum*mult0},0);
+   mult0=1;
+   let v0i= my.v0.reduceRight((prevNum,curNum,i)=>{
+                                                        let ni;
+                                                        if (i<my.M-1) {ni=my.N[i+1]} else {ni=1};
+                                                        mult0=mult0*ni;
+                                                        return prevNum+curNum*mult0},0);       
+   let nodi = nod(multi,delti);
+   let nodvi = nod(multi,v0i);
+   let noki = nok(my.N);
+   document.getElementById("mult").innerHTML=multi;
+   document.getElementById("delt").innerHTML=v0i;
+   document.getElementById("nod").innerHTML=nodvi;
+   document.getElementById("nok").innerHTML=noki;
+   return {mult:multi,nod:nodvi,nok:noki,v0:v0i};
+}
+
+  function nod(a,b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    if (b > a) {var temp = a; a = b; b = temp;}
+    while (true) {
+        if (b == 0) return a;
+        a %= b;
+        if (a == 0) return b;
+        b %= a;
+    }
+}
+
+// Вычисляем наименьшее общее кратное группы чисел
+// A - массив целых чисел (например, [-50,25,-45,-18,90,447])
+function nok(A)
+{   
+    let  n = A.length, a = Math.abs(A[0]);
+    for (let i = 1; i < n; i++)
+     { let b = Math.abs(A[i]), c = a;
+       while (a && b){ a > b ? a %= b : b %= a; } 
+       a = Math.abs(c*A[i])/(a+b);
+     }
+    return a;
+}
+function toggle(elem){
+ elem.classList.toggle("alg1");
+ if (elem.classList.contains("alg1")){
+   elem.innerHTML='Алгоритм 1';
+   algoritm=1;
+   let el=document.getElementById('delta');
+   el.disabled=false;
+   document.getElementById('spdelta').classList.remove("LightGray");
+ } else {
+   elem.innerHTML='Алгоритм 2';
+   algoritm=2;
+   document.getElementById('delta').setAttribute('disabled','true');
+   document.getElementById('spdelta').classList.add("LightGray");
+ }
+}
+
+function toggleNOD(){
+ let elem=document.getElementById('nodi');
+ elem.classList.toggle("none");
+ 
+}
+
+function coPriNums0(){
+   function div(val, by){
+    return (val - val % by) / by;
+   }
+ 
+   function toArr(num){
+     let arrNum=[];
+     nmult.forEach((el,i,arr)=>{
+                 arrNum.push(div(num,el));
+                 num=num-arrNum[i]*el;
+     });
+     arrNum.push(num);
+     return arrNum;
+   }
+   let nmult=Array.from(Array(my.N.length),x=>1);
+   my.N.forEach((el,i,arr)=>{
+     for (let j=i;j<arr.length;j++){
+       nmult[i]*=my.N[j];
+     }
+   });
+   let f=coPrimeNumbers0(nmult[0],nmult[1],nmult[1]*2,5000);
+   let f1=[];
+   nmult.shift();
+   f.forEach((el,i,arr)=>{
+      f1[i]=toArr(el)});
+   let flen=f1.length;
+   let j=rndInt(1,flen-1);
+   //alert('flen='+flen+'j='+j+ ' v0='+my.v0);
+   my.v0=f1[j];
+   document.getElementById("v0").value=my.v0.join(',');
+   calcNOD();
+}
+
+//вычисляет первые lim взаимно простые числа с inputNumber, между limB и limT
+function coPrimeNumbers0(inputNumber,limB,limT,lim) {
+	    // массив, где будем хранить все найденные числа
+    var sequence = [];
+    let s=0;
+    let shag=Math.floor((limT-limB)/lim/11);
+    shag=Math.max(shag,1);
+   // alert('limB='+limB+' limT='+limT+' limT-limB='+(limT-limB)+ ' shag='+shag);
+    // проходим все числа от lim до введённого числа
+    for (let j = limB; j < limT; j+=shag) {
+    	// если НОД=1,
+        if (nod(j,inputNumber)==1) {
+        	// то добавляем это число в массив
+            sequence.push(j);
+            s++;
+            if (s>lim) break;
+        }
+    }
+    //возвращаем массив с взаимно простыми делителями
+    return sequence;
+};
+
+function raspr(M,N){
+  let m=M.value;
+  let n=N.value;
+  let nn='',dd='';
+  for (let j=0;j<m;j++) {
+    nn+=','+n;
+    dd+=',1';
+    
+  }
+  N.value=nn.slice(1);
+  delta.value=dd.slice(1);
+  v0.value=dd.slice(1);
+  
+}
+
+
+  </script>
+  <style>
+     .koleso {
+       border:1px solid;
+       margin:1px;
+       text-align: center; 
+       }
+     .LightGray {
+       color:LightGray;
+       }   
+     
+     div.none  { display: none; }
+	   span.none  { display: none;}
+      .plus {  background-color: white;}
+	  .plus:hover {background-color: khaki;
+	               cursor: pointer;}
+	  .contrplus {  background-color: white;}
+	  .contrplus:hover {background-color: khaki;
+	               cursor: pointer;}		       
+  </style>
+  <body onload="google.script.run.withSuccessHandler(setNastr).getNastr();">
+  
+   <fieldset>
+  <legend> Настройки </legend>
+   <div>
+    Задач <input class="kls" id="M" type="text" maxlength="2" size="2"><br>
+    Экземпляров <button onclick='raspr(M,N);'>во всех</button> 
+    <input class="kls" id="N" type="text" maxlength="100" size="30">
+    
+    <br>
+    <span id='spdelta'>Дельта</span> 
+    <input class="kls" id="delta" type="text" maxlength="100" size="30"><br>
+    Шаг начального значения <button onClick="coPriNums0()">✔</button>
+    <input class="kls" id="v0" type="text" maxlength="100" size="30">
+    <button onclick='refreshNastr()'>reFresh</button> <span id='rz'></span> 
+    <button onClick="toggleNOD();">НОД</button>
+    <div id="nastr">
+   
+    </div>
+    <div id='nodi' class='none'>
+        <hr>
+        НОК(N1,...,Nn)=
+          <span id="nok">?</span><br>
+        N1N2 ... Nn=
+          <span id="mult">?</span><br>
+        Шаг=
+          <span id="delt"> ?</span><br>
+        НОД(N1N2 ... Nn,Шаг)=
+          <span id="nod"> ?</span>  
+    </div>
+    
+  </div>  
+  </fieldset>
+  
+  <fieldset>
+  <legend><button id='alg' class='alg1' onclick='toggle(alg);'>Алгоритм 1</button></legend>
+   <div>
+    Нажато <span class="raz" id="raz">0</span> раз(а)
+    <div id="side">
+    </div>
+    <hr>
+     <button onClick="Next();google.script.run.saveP(pasport,stat);">Следующий вариант</button>     
+    <hr>Сгенерировать <input id='qq' value=100>
+     <button onClick="nextPart(qq.value);">Следующая порция</button>
+     Неуд.попыток <span id="out"> </span>     
+  </div>  
+  </fieldset>
+   
+  </body>
+</html>
