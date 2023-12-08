@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Arimo:400,400italic|Playfair+Display+SC:400,700&subset=latin,cyrillic);
+h2 {
+  font-family: 'Playfair Display SC', serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+  font-size: 24px;
+  color: #222222;
+  text-align: center;
+}
+
+body {
+  font-family: 'Playfair Display SC', serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+  font-size: 12px;
+  color: #222222;
+}
+
+p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #444444;
+}
+
+.error {
+      color : red;
+      background-color : pink;
+      border-style : solid;
+      border-color : red;
+}
+
+.process {
+      color : #222222;
+      background-color : yellow;
+      border-style : solid;
+      border-color : orange;
+}
+
+    </style>
+  </head>
+  <body onload="setDefaultValues()" style="background-image:url('https://i.imgur.com/cFZuRGr.png')">
+        <h2>Работа с файлами</h2>
+        <br>
+        <fieldset>
+            <div class="input">
+                <b>Ссылка на таблицу вариантов</b><br>
+                <input type="text" id="table_variants">
+                <br><br>
+                <b>Название листа с вариантами</b><br>
+                <input type="text" id="sheet_variants">
+                <br><br>
+                <b>Номер варианта</b><br>
+                <input type="number" id="num_variant" min="0">
+                <br><br>
+                <b>Номер задачи</b><br>
+                <input type="number" id="num_task" min="0">
+                <br><br>
+                <button type="button" onclick="searchTask()">Найти</button>
+                <p id="infoOperation"></p>
+            </div>
+            <hr>
+            <div class="result">
+                <b>Условие</b>
+                <p id="condition"></p>
+                <br><br>
+                <b>Ответ</b>
+                <p id="answer"></p>
+            </div>
+        </fieldset>
+
+
+  <script>
+        let urlTableOfVariants;
+        let idTableOfVariants;
+        let nameSheetOfVariants;
+        let idMainFolder = "";
+        let nameSheetOfSamples = "ДМ 8-й факультет 1-й семестр";
+        let num_variant = 0;
+        let num_task = 0;
+        let sampleExist = true;
+
+        var output;
+        
+        function setDefaultValues(){
+          document.getElementById("table_variants").value = "https://docs.google.com/spreadsheets/d/1N-RSTVvwh4htfKg1H_rDBkNDgSCz5zGNYxm5jZgUrcU";
+          document.getElementById("sheet_variants").value = "паспорта 10";
+          document.getElementById("num_variant").value = 1;
+          document.getElementById("num_task").value = 1;
+
+          google.script.run
+          .withSuccessHandler(name => {
+              nameSheetOfSamples = name;
+              })
+          .withFailureHandler(error => {
+              document.getElementById("infoOperation").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .getNameThisSheet()
+        }
+
+        function searchTask(){
+          num_variant = document.getElementById("num_variant").value;
+          num_task  = document.getElementById("num_task").value;
+          idTableOfVariants = document.getElementById("table_variants").value.match(/[-\w]{25,}/);
+          nameSheetOfVariants = document.getElementById("sheet_variants").value;
+          
+          getIdMainFolder();
+
+          google.script.run
+          .withSuccessHandler(exist => {
+              sampleExist = exist;
+              if(sampleExist) {
+                document.getElementById("infoOperation").innerHTML = `<div class="process">Процесс...</div>`;
+                google.script.run
+                .withSuccessHandler(info => {
+                  output = info;
+                  document.getElementById("infoOperation").innerHTML = `<p><a href="${output["urlSample"]}">Экземпляр ${output["nameSample"]}</a></p> <p><a href="${output["urlAnswer"]}">Решение ${output["nameAnswer"]}</a></p>`;
+
+                  document.getElementById("condition").innerHTML = `<div class="process">Процесс...</div>`;
+                  getContentSample();
+                  document.getElementById("answer").innerHTML = `<div class="process">Процесс...</div>`;
+                  getContentAnswer();
+                  })
+                .withFailureHandler(error => {
+                  document.getElementById("infoOperation").innerHTML = `<div class="error">${error.message}</div>`;
+                  })
+                .searchUrlFileOfSampleAndAnswer(num_variant, num_task, idTableOfVariants, nameSheetOfVariants, nameSheetOfSamples);
+
+              }
+              else document.getElementById("infoOperation").innerHTML = "Такого задания/варианта нет в таблице вариантов!"
+              })
+          .withFailureHandler(error => {
+              document.getElementById("infoOperation").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .sampleExist(num_variant, num_task, idTableOfVariants, nameSheetOfVariants);
+          
+        }
+        
+        function getIdMainFolder(){
+          google.script.run
+          .withSuccessHandler(url => {
+              idMainFolder = url.match(/[-\w]{25,}/);
+              })
+          .withFailureHandler(error => {
+              document.getElementById("infoOperation").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .getUrlMainFolder(nameSheetOfSamples);
+        }
+
+        function isSampleExist(num_variant, num_task, idTableOfVariants, nameSheetOfVariants){
+          google.script.run
+          .withSuccessHandler(exist => {
+              sampleExist = exist;
+              })
+          .withFailureHandler(error => {
+              document.getElementById("infoOperation").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .sampleExist(num_variant, num_task, idTableOfVariants, nameSheetOfVariants);
+        }
+
+        function getContentSample(){
+          google.script.run
+          .withSuccessHandler(result => {
+                if(result["contentText"].length != 0){
+                  document.getElementById("condition").innerHTML = `${result["contentText"][0]}<br>`;
+                  for(var i = 1; i < result["contentText"].length; i++){
+                  document.getElementById("condition").innerHTML += `${result["contentText"][i]}<br>`;
+                  }
+
+                  for(var i = 0; i < result["images"].length; i++){
+                    document.getElementById("condition").innerHTML += `<img src="${result["images"][i]["imageUrl"]}" alt="${result["images"][i]["imageName"]}">`;
+                  }
+                }
+              })
+          .withFailureHandler(error => {
+                document.getElementById("condition").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .getContentFromDocument(output["urlSample"],idMainFolder);
+        }
+
+        function getContentAnswer(){
+          google.script.run
+          .withSuccessHandler(result => {
+                if(result["contentText"].length != 0){
+                  document.getElementById("answer").innerHTML = `${result["contentText"][0]}<br>`;
+                  for(var i = 1; i < result["contentText"].length; i++){
+                  document.getElementById("answer").innerHTML += `${result["contentText"][i]}<br>`;
+                  }
+
+                  for(var i = 0; i < result["images"].length; i++){
+                    document.getElementById("answer").innerHTML += `<img src="${result["images"][i]["imageUrl"]}" alt="${result["images"][i]["imageName"]}">`;
+                  }
+                }
+              })
+          .withFailureHandler(error => {
+                document.getElementById("answer").innerHTML = `<div class="error">${error.message}</div>`;
+              })
+          .getContentFromDocument(output["urlAnswer"],idMainFolder);
+        }
+
+  </script>
+
+  </body>
+</html>
