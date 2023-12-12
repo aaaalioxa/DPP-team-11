@@ -222,67 +222,6 @@ function getNameThisSheet(){
   return sheetName;
 }
 
-//"1HNXeS-zEkuBJr7HOBXLbkAcNayF3QdN"
-
-function convToGoogle(fileId) {
-  if (fileId == null) throw new Error("No file ID.");
-  var file = DriveApp.getFileById(fileId);
-  var filename = file.getName();
-  var mime = file.getMimeType();
-  var ToMime = "";
-  switch (mime) {
-    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      ToMime = "application/vnd.google-apps.document";
-      break;
-    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      ToMime = "application/vnd.google-apps.spreadsheet";
-      break;
-    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-      ToMime = "application/vnd.google-apps.presentation";
-      break;
-    default:
-      return null;
-  }
-  var metadata = {
-    name: filename,
-    mimeType: ToMime
-  };
-  var fields = "id,mimeType,name";
-  var url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=" + encodeURIComponent(fields);
-  var boundary = "xxxxxxxxxx";
-  var data = "--" + boundary + "\r\n";
-  data += "Content-Type: application/json; charset=UTF-8\r\n\r\n";
-  data += JSON.stringify(metadata) + "\r\n";
-  data += "--" + boundary + "\r\n";
-  data += "Content-Type: " + mime + "\r\n\r\n";
-  var payload = Utilities.newBlob(data).getBytes().concat(file.getBlob().getBytes()).concat(Utilities.newBlob("\r\n--" + boundary + "--").getBytes());
-  var res = UrlFetchApp.fetch(url, {
-    method: "post",
-    headers: {
-      "Authorization": "Bearer " + ScriptApp.getOAuthToken(),
-      "Content-Type": "multipart/related; boundary=" + boundary
-    },
-    payload: payload,
-    muteHttpExceptions: true
-  }).getContentText();
-  var id = JSON.parse(res).id;
-  return id;
-};
-
-
-function test3(){
-  const folder = DriveApp.getFolderById("1IEAoEFCi82ihUp05BFGqq4cU7v3i-fa-");
-  let files = folder.getFiles();
-  let id = "";
-  while(files.hasNext()){
-    var file = files.next();
-    id = file.getId();
-    var file_new = DriveApp.getFileById(convToGoogle(id));
-    file_new.moveTo(folder);
-    console.log(file_new.getName());
-  }
-}
-
 
 /** 
  * Переменная для хранения всей основной 
@@ -316,8 +255,6 @@ function updateTableSamplesAnswers(){
 
 }
 
-function test4(){
-}
 
 /** 
  * Начальная функция для запуска 
@@ -347,7 +284,7 @@ function upTabSampAnswInitializer(startIndex, params) {
         console.log('*** executeLongRun started. ***');
         showSidebarInfoWorking();
     }
-    console.log("testInitializer(startIndex=" + startIndex);
+    console.log("testInitializer(startIndex=" + startIndex));
     // demonstrate loading data
 }
 
@@ -372,7 +309,7 @@ function upTabSampAnswMain(index, params) {
     }
     
     CacheService.getUserCache().put("statusOfExecution", infoExecution);
-    console.log("upTabSampAnswMain(index=" + index);
+    console.log("upTabSampAnswMain(index=" + index));
 
     // demonstrate the process
     console.log("  processing " + "...");
@@ -572,13 +509,6 @@ function createArrFolders(idFrom){
 
 
   return arrFolders;
-}
-
-function test2(){
-  var id = "1Uawn7FQbWY6LICJkakRMjRYrfSGIEpOh";
-  var arrFolders = createArrFolders(id);
-  arrFolders[0]['answers'] = createAnswersFiles(arrFolders, 0);
-  createMainSheetWithAnswers(arrFolders);
 }
 
 /** 
